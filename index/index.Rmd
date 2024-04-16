@@ -1,0 +1,438 @@
+---
+title: "Analyse de la consultation ouverte"
+subtitle: ""
+author: "Samuel Goëta, Datactivist"
+date: "Assises d'OpenDataFrance, `r Sys.Date()`"
+output:
+  SlidesDatactivist::moon_reader:
+    css: [default, datactivist, datactivist-fonts]
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      beforeInit: ["macros.js", "matomo.js", "https://platform.twitter.com/widgets.js"]
+      slideNumberFormat: |
+        <div class="progress-bar-container">
+          <div class="progress-bar" style="width: calc(%current% / %total% * 100%);">
+          </div>
+        </div>
+    anchor_sections: false
+params:
+  event: la grosse conférence
+  slug: lagrosseconf
+  description: Découvrez ma grosse conférence !
+  title: Mon joli titre de présentation
+  image: https://github.com/datactivist/slides_datactivist/raw/master/inst/rmarkdown/templates/xaringan/resources/img/logo.png
+  image_alt: le logo de Datactivist
+---
+
+```{r, echo=FALSE}
+library(metathis)
+meta() %>% 
+  meta_description(params$event) %>% 
+  meta_name("github-repo" = paste0("datactivist/", params$slug)) %>% 
+  meta_viewport() %>% 
+  meta_social(
+    title = params$title,
+    url = paste0("https://datactivist.coop/", params$slug),
+    image = params$image,
+    image_alt = params$image_alt,
+    og_type = "website",
+    og_author = "Datactivist",
+    og_locale = "fr_FR",
+    og_site_name = "Datactivist",
+    twitter_card_type = "summary",
+    twitter_creator = "@datactivi_st")
+
+```
+
+layout: true
+
+<style>
+.remark-slide-number {
+  position: inherit;
+}
+
+.remark-slide-number .progress-bar-container {
+  position: absolute;
+  bottom: 0;
+  height: 4px;
+  display: block;
+  left: 0;
+  right: 0;
+}
+
+.remark-slide-number .progress-bar {
+  height: 100%;
+  background-color: #e95459;
+}
+
+</style>
+
+
+`r paste0("<div class='my-footer'><span>", params$event, "</span> <center><div class=logo><a href='https://datactivist.coop/'><img src='https://github.com/datactivist/slides_datactivist/raw/master/inst/rmarkdown/templates/xaringan/resources/img/fond_noir_monochrome.png' width='100px'></a></div></center></span></div>")` 
+
+
+---
+
+class: center, middle
+
+Ces slides en ligne : `r paste0("http://datactivist.coop/", params$slug)`
+
+Sources : `r paste0("https://github.com/datactivist/", params$slug)`
+
+
+Les productions de Datactivist sont librement réutilisables selon les termes de la licence [Creative Commons 4.0 BY-SA](https://creativecommons.org/licenses/by-sa/4.0/legalcode.fr).
+
+<BR>
+<BR>
+
+![](https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-sa.png)
+
+---
+### Les répondants 
+
+.pull-left[
+```{r}
+library(tidyverse) #import des données
+
+consultation <- read_csv(file = "consultation_ouverte.csv") %>% 
+    rename(type_orga=`Dans quel type d'organisation travaillez vous ?`)
+  
+
+names(consultation)
+
+# Visualisation des types d'orga
+type_orga <- consultation %>% 
+  group_by(type_orga) %>% 
+  summarise(orga = (n())) %>%
+  mutate(Secteur = case_when(
+    type_orga %in% c("Commune", "Département", "EPCI", "Région", "Service de l'Etat") ~ "Public",
+    type_orga == "Entreprise privée" ~ "Privé",
+    TRUE ~ "Autre")) %>% 
+  mutate(adherent = case_when(
+    type_orga %in% c("Commune", "Département", "EPCI", "Région") ~ "oui",
+    TRUE ~ "non")) %>% 
+  write_csv("type_orga.csv")
+
+type_orga %>% 
+  pivot_wider(names_from = type_orga, values_from = orga) %>% 
+  write_csv("type_orga_wide.csv")
+  
+
+type_orga <- type_orga %>%
+  fct_reorder(Secteur,orga)
+
+# Custom_theme pour ggplot
+custom_theme <- function (){
+    font <- "Helvetica"
+    ggplot2::theme(plot.title = ggplot2::element_text(family = font,size = 19, face = "bold", color = "#222222"), 
+        plot.subtitle = ggplot2::element_text(family = font,size = 18, face = "italic", margin = ggplot2::margin(0, 0, 9, 0)), 
+        plot.caption = ggplot2::element_text(family = font,size = 15, face = "italic", color = "#666666", margin = ggplot2::margin(9, 0, 9, 0)), 
+        plot.tag = ggplot2::element_text(size = 15),
+        #plot.tag.position = "topright",
+        plot.caption.position = "plot",
+        legend.title = ggplot2::element_text(family = font, size = 18, color = "#222222"), 
+        legend.position = "top", 
+        legend.text.align = 0, 
+        legend.background = ggplot2::element_blank(),
+        legend.key = ggplot2::element_blank(),
+        legend.text = ggplot2::element_text(family = font, size = 18,color = "#222222"), 
+        axis.text = ggplot2::element_text(family = font, size = 15,color = "#222222"), 
+        axis.text.x = ggplot2::element_text(margin = ggplot2::margin(5,b = 10), size = 12), 
+        axis.title = ggplot2::element_text(family = font, size = 18,color = "#222222"),
+        axis.ticks = ggplot2::element_blank(),
+        axis.line = ggplot2::element_blank(), 
+        panel.grid.minor = ggplot2::element_blank(),
+        panel.grid.major.y = ggplot2::element_line(color = "#cbcbcb"),
+        panel.grid.major.x = ggplot2::element_blank(), 
+        panel.background = ggplot2::element_blank(),
+        strip.background = ggplot2::element_rect(fill = "white"),
+        strip.text = ggplot2::element_text(size = 22, hjust = 0, face = "bold"))
+}
+
+library(gghighlight)
+
+type_orga_plot <- ggplot(type_orga, aes(fill=type_orga, y=orga, x=Secteur, alpha=adherent!="oui")) + 
+  geom_bar(position="stack", stat="identity") +
+  scale_alpha_manual(values=c(1, 0.5)) +
+  geom_text(aes(label = orga), position = position_stack(vjust = 0.5), size = 4) +
+  labs(title = "Répartition des répondants par secteur et type d'organisation",caption = "Source : OpenDataFrance", size=4) +
+  # changer le label de l'axe vers "Nombre de répondants"
+  ylab("Nombre de répondants") + 
+  theme(legend.position = "right", size=5) +
+  guides(alpha="none")
+
+ggsave(file = "type_orga.png", plot = type_orga_plot, width = 9, height = 5)
+
+```
+
+
+---
+
+## Analyse du champ sur l'adhésion à la société
+
+```{r}
+
+membres <- consultation %>%
+  group_by(`L'organisation dans laquelle vous travaillez est-elle membre d'OpenDataFrance`) %>%
+  summarise(n = n()) %>% 
+  filter(`L'organisation dans laquelle vous travaillez est-elle membre d'OpenDataFrance` != "EPCI")
+
+membres <- membres %>%
+  fct_reorder(type_orga, n)
+
+ggplot(membres, aes(x = `L'organisation dans laquelle vous travaillez est-elle membre d'OpenDataFrance`, y = n, fill = `L'organisation dans laquelle vous travaillez est-elle membre d'OpenDataFrance`)) +
+  geom_col() +
+  geom_text(aes(label = n), vjust = -0.3, size = 3.5) +
+  labs(title = "Adhésion à OpenDataFrance", caption = "Source : OpenDataFrance") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  # enlever la légende
+  theme(legend.position = "none") + 
+  
+  
+
+ggsave(file = "membres.png", width = 9, height = 8)
+ 
+```
+
+---
+## Analyse de l'environnement de l'association
+
+```{r}
+
+names(consultation)
+
+# renommer certaines colonnes
+consultation <- consultation %>% 
+  rename(type_orga = `Dans quel type d'organisation travaillez vous ?`) %>% 
+  rename(contexte = `Le contexte dans lequel intervient OpenDataFrance évolue. Aujourd'hui, l'open data vous semble :`)
+
+environnement <- consultation %>% 
+  group_by(contexte) %>% 
+  summarise(n = n()) %>%
+  # fct reordering
+  mutate(contexte = fct_reorder(contexte, n))
+
+# enlever valeur non et il n'est pas prévu de de le devenir
+environnement <- environnement %>% 
+  filter(contexte != "Non, et il n'est pas prévu de le devenir")
+
+# renommer une valeur dans la colonne contexte
+environnement <- environnement %>% 
+  mutate(contexte = fct_recode(contexte, "S'ouvrir à l'ensemble des données d'intérêt général"= "S'ouvrir à l'ensemble des données d'intérêt général (publiques et privées, ouvertes et fermées)
+"))
+
+# col chart en facette par type orga
+contexteplot <- ggplot(environnement, aes(x = contexte, y = n, fill = contexte)) +
+  coord_flip() +
+  geom_col() +
+  labs(title = "Le contexte dans lequel intervient OpenDataFrance évolue. Aujourd'hui, l'association doit : ", caption = "Source : OpenDataFrance", size = 15) +
+  # enlever les labels sur l'axe y
+  theme(axis.text.y = element_blank()) +
+  theme(legend.position = "bottom") + 
+  # display labels in bins
+  geom_text(aes(label = contexte), vjust = -1, size = 5) + 
+  # légende sur 2 lignes
+  theme(legend.text = element_text(size = 8)) + 
+  # augmenter la taille de l'axe x
+  theme(axis.text.x = element_text(size = 12))
+
+  ggsave(contexteplot, file = "environnement.png", width = 9, height = 8)
+  
+
+
+```
+
+
+---
+# Membres d'OpenDataFrance
+
+```{r, echo=FALSE}
+
+
+membres_devraient_ordre <- membres_devraient %>% 
+  group_by(valeur) %>%
+  summarise(n_ordre = sum(n))
+
+
+membres_devraient <- consultation %>%
+  mutate(secteur = case_when(
+    type_orga %in% c("Commune", "Département", "EPCI", "Région", "Service de l'Etat") ~ "Public",
+    type_orga == "Entreprise privée" ~ "Privé",
+    TRUE ~ "Autre")) %>%
+  group_by(secteur, type_orga,`Les membres d'OpenDataFrance devraient être :`) %>%
+  summarise(n = n()) %>% 
+  ungroup() %>% 
+  rename(membres = `Les membres d'OpenDataFrance devraient être :`) %>%
+  separate_wider_delim(membres, delim = ",", names_sep = "", too_few = "align_start") %>% 
+  pivot_longer(cols = c(membres1:membres6), names_to = "colonne", values_to = "valeur") %>% 
+  select(-colonne) %>% 
+  group_by(secteur, type_orga,valeur) %>% 
+  summarise(n = sum(n)) %>%
+  group_by(secteur, valeur) %>%
+  summarise(n = sum(n)) %>% 
+  # filter NA dans n
+  filter(!is.na(valeur)) %>%
+  filter(!valeur %in% c("Je ne me prononce pas","OpenDataLocale")) %>% 
+  left_join(membres_devraient_ordre, by = "valeur") %>%
+  mutate(valeur = fct_reorder(valeur, desc(n_ordre)))
+  
+
+# col chart en facettes par type orga
+membres_devraient_plot2 <- 
+  ggplot(membres_devraient, aes(x = valeur, y = n, fill = valeur)) +
+  geom_col() +
+  facet_grid(rows = vars(secteur), scales = "fixed") +
+  labs(title = "Les membres d'OpenDataFrance devraient être : ", caption = "Source : OpenDataFrance", size = 15) +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.y = element_blank()) +
+  geom_text(aes(label = n), vjust = 1.3, size = 4) +
+  theme(strip.text = element_text(size = 15)) +
+  theme(axis.text.x = element_text(size = 13))
+  
+  ggsave(plot = membres_devraient_plot2, file = "membres_devraient.png", width = 9, height = 8)
+
+```
+
+---
+## Sujets prioritaires
+
+```{r}
+
+sujets <- consultation %>%
+  rename(sujets = `Quels sont les sujets prioritaires que devrait traiter Open Data France ?`) %>%
+  group_by(sujets) %>% 
+  summarise(n = n()) %>% 
+  filter(sujets != "Autre") %>% 
+  separate_wider_delim(sujets, delim = ",", names_sep = "", too_few = "align_start") %>% 
+  pivot_longer(cols = c(sujets1:sujets7), names_to = "colonne", values_to = "valeur") %>% 
+  select(-colonne) %>% 
+  group_by(valeur) %>%
+  summarise(n = sum(n)) %>% 
+  filter(!is.na(valeur)) %>% 
+  mutate(valeur = fct_reorder(valeur, n))
+  
+  
+
+sujetsplot <- sujets %>% 
+  ggplot(aes(x=valeur, y = n, fill=valeur)) + 
+  geom_col() +
+  coord_flip() +
+  theme(legend.position="none") +
+  geom_text(aes(label = n), hjust =0, size = 3) +
+  labs(title = "Sujets prioritaires de l'association", caption = "Source : OpenDataFrance", size = 15)
+
+ggsave(sujetsplot, filename="sujetsplot.png", width=9, height=8)
+
+
+```
+
+---
+## Activités de l'associations
+
+```{r}
+
+activites_ordre <- activites %>%
+  group_by(valeur) %>%
+  summarise(n_ordre = sum(n)) %>% 
+  mutate(valeur = fct_reorder(valeur,n_ordre)) 
+
+names(consultation)
+
+activites <- consultation %>% 
+  mutate(activites = `Quelles devraient être les activités prioritaires d'Open Data France ?`) %>% 
+  group_by(activites, type_orga) %>% 
+  summarise(n = n()) %>% 
+  ungroup() %>% 
+  separate_wider_delim(activites, delim=",",names_sep="", too_few="align_start") %>% 
+  pivot_longer(cols = c(activites1:activites9), names_to = "colonne", values_to = "valeur") %>% 
+  select(-colonne) %>% 
+  group_by(type_orga, valeur) %>%
+  summarise(n = sum(n)) %>% 
+  filter(!is.na(valeur)) %>% 
+  mutate(valeur = fct_reorder(valeur, n)) %>% 
+  left_join(activites_ordre, by = "valeur") %>%
+  mutate(valeur = fct_reorder(valeur, n_ordre)) %>% 
+  left_join(type_orga, by="type_orga")
+
+activites %>%
+  group_by(Secteur, valeur,n_uneseule) %>% 
+  summarise(n=sum(n), n_uneseule=(sum(n_uneseule))) %>% 
+  ggplot(aes(x=valeur, y=n, fill=valeur)) +
+  geom_col() +
+  coord_flip() +
+  facet_grid(rows=vars(Secteur), scales="fixed") +
+  theme(legend.position = "none") +
+  geom_text(aes(label=n), hjust = 0, size = 3) +
+  labs(title = "Activités prioritaires de l'association", caption = "Source : OpenDataFrance", size = 15) + 
+  theme(axis.text.y = element_text(size=6)) 
+  
+
+activites_plot <- activites_ordre %>%
+  ggplot(aes(x=valeur, y=n_ordre, fill=valeur)) +
+  geom_col() +
+  coord_flip() +
+  theme(legend.position="none") + 
+  geom_text(aes(label = n_ordre), hjust = 0, size = 3) + 
+  labs(title = "Activités prioritaires de l'association", caption = "Source : OpenDataFrance", size = 15) + 
+  # déplacer titre
+  theme(plot.title = element_text(hjust = 3))
+
+activites_plot
+
+```
+
+
+
+---
+## Une seule activité
+
+```{r}
+# garder que les contributions avec une seule activité
+uneseule <- consultation %>% 
+  rename(valeur = `S'il ne fallait choisir qu'une de ces activités, laquelle vous semblerait prioritaire ?`) %>% 
+  group_by(valeur) %>% 
+  summarise(n = n()) %>%
+  rename(n_uneseule = n) %>% 
+  mutate(valeur=fct_reorder(valeur, n_uneseule))
+
+# un seul data frame avec plusieurs activités ou une seule activité
+activites_ordreuneseule <- activites_ordre %>% 
+  left_join(uneseule, by="valeur") %>%
+  pivot_longer(cols=c(n_uneseule,n_ordre),names_to="reponses", values_to="compte")
+
+activites_ordreuneseule$reponses <- fct_relevel(activites_ordreuneseule$reponses, c("n_ordre", "n_uneseule"))
+
+# stacked bar chart en fonction de n_uneseule et n_ordre
+uneseuleplot <- activites_ordreuneseule %>% 
+  ggplot(aes(x=valeur, y=compte, fill=reponses)) +
+  geom_col(position="dodge", stat="reponses") +
+  # afficher la barre pour n_ordre avant N_uneseule
+  coord_flip() +
+  theme(legend.position="none") +
+  geom_text(aes(label=compte), size = 3) +
+  labs(title = "Quelles devraient être les activités prioritaires d'Open Data France ?", caption = "Source : OpenDataFrance", size = 15) + 
+  theme(plot.title = element_text(hjust = 1)) +
+  theme(axis.text.y = element_text(size=8)) + 
+  # légende en bas de la figure en indiquant manuellement la légende pour la colonne reponse
+
+
+  
+uneseuleplot
+
+
+
+```
+
+
+
+---
+```{r, echo=FALSE}
+class: inverse, center, middle
+
+# Merci !
+
+Contact : [joel@datactivist.coop](mailto:joel@datactivist.coop)

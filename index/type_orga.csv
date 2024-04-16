@@ -1,0 +1,8 @@
+type_orga,orga,Secteur,adherent
+Autre,10,Autre,non
+Commune,7,Public,oui
+Département,10,Public,oui
+EPCI,13,Public,oui
+Entreprise privée,25,Privé,non
+Région,6,Public,oui
+Service de l'Etat,8,Public,non
