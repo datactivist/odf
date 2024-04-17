@@ -203,6 +203,7 @@ ggsave(file = "membres.png", width = 9, height = 8)
 ```{r}
 
 names(consultation)
+library(questionr)
 
 # renommer certaines colonnes
 consultation <- consultation %>% 
@@ -212,34 +213,27 @@ consultation <- consultation %>%
 environnement <- consultation %>% 
   group_by(contexte) %>% 
   summarise(n = n()) %>%
-  # fct reordering
   mutate(contexte = fct_reorder(contexte, n))
 
 # enlever valeur non et il n'est pas prévu de de le devenir
 environnement <- environnement %>% 
   filter(contexte != "Non, et il n'est pas prévu de le devenir")
 
-# renommer une valeur dans la colonne contexte
-environnement <- environnement %>% 
-  mutate(contexte = fct_recode(contexte, "S'ouvrir à l'ensemble des données d'intérêt général"= "S'ouvrir à l'ensemble des données d'intérêt général (publiques et privées, ouvertes et fermées)
-"))
-
 # col chart en facette par type orga
 contexteplot <- ggplot(environnement, aes(x = contexte, y = n, fill = contexte)) +
-  coord_flip() +
   geom_col() +
+  coord_flip() +
   labs(title = "Le contexte dans lequel intervient OpenDataFrance évolue. Aujourd'hui, l'association doit : ", caption = "Source : OpenDataFrance", size = 15) +
-  # enlever les labels sur l'axe y
-  theme(axis.text.y = element_blank()) +
-  theme(legend.position = "bottom") + 
-  # display labels in bins
-  geom_text(aes(label = contexte), vjust = -1, size = 5) + 
+  theme(legend.position = "none") + 
+  geom_text(aes(label = n), hjust = 0, size = 3) +
   # légende sur 2 lignes
-  theme(legend.text = element_text(size = 8)) + 
+  theme(legend.text = element_text(size = 10)) + 
   # augmenter la taille de l'axe x
-  theme(axis.text.x = element_text(size = 12))
+  theme(axis.text.x = element_text(size = 15)) + 
+  theme(plot.title = element_text(hjust = 3)) + 
+    theme(axis.text.y = element_text(size=11)) 
 
-  ggsave(contexteplot, file = "environnement.png", width = 9, height = 8)
+  ggsave(contexteplot, file = "environnement.png", width = 12, height = 8)
   
 
 
@@ -289,9 +283,9 @@ membres_devraient_plot2 <-
   theme(legend.position = "none") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   theme(axis.text.y = element_blank()) +
-  geom_text(aes(label = n), vjust = 1.3, size = 4) +
+  geom_text(aes(label = n), vjust = 1.3, size = 5) +
   theme(strip.text = element_text(size = 15)) +
-  theme(axis.text.x = element_text(size = 13))
+  theme(axis.text.x = element_text(size = 15))
   
   ggsave(plot = membres_devraient_plot2, file = "membres_devraient.png", width = 9, height = 8)
 
@@ -321,11 +315,14 @@ sujetsplot <- sujets %>%
   ggplot(aes(x=valeur, y = n, fill=valeur)) + 
   geom_col() +
   coord_flip() +
+    labs(title = "Quels sont les sujets prioritaires que devrait traiter Open Data France ?", caption = "Source : OpenDataFrance", size = 17, hjust=0) +
   theme(legend.position="none") +
-  geom_text(aes(label = n), hjust =0, size = 3) +
-  labs(title = "Sujets prioritaires de l'association", caption = "Source : OpenDataFrance", size = 15)
+  geom_text(aes(label = n), hjust =0, size = 4)+
+  theme(axis.text.y = element_text(size=13)) +
+  theme(plot.title = element_text(hjust = 18))
 
-ggsave(sujetsplot, filename="sujetsplot.png", width=9, height=8)
+
+ggsave(sujetsplot, filename="sujetsplot.png", width=12, height=8)
 
 
 ```
@@ -381,7 +378,9 @@ activites_plot <- activites_ordre %>%
   # déplacer titre
   theme(plot.title = element_text(hjust = 3))
 
-activites_plot
+ggsave(activites_plot, filename="activites_plot.png", width=12, height=8)
+
+
 
 ```
 
@@ -410,24 +409,50 @@ activites_ordreuneseule$reponses <- fct_relevel(activites_ordreuneseule$reponses
 uneseuleplot <- activites_ordreuneseule %>% 
   ggplot(aes(x=valeur, y=compte, fill=reponses)) +
   geom_col(position="dodge", stat="reponses") +
-  # afficher la barre pour n_ordre avant N_uneseule
   coord_flip() +
-  theme(legend.position="none") +
-  geom_text(aes(label=compte), size = 3) +
+  theme(legend.position="top") +
+  geom_text(aes(label=compte), size = 3.5) +
   labs(title = "Quelles devraient être les activités prioritaires d'Open Data France ?", caption = "Source : OpenDataFrance", size = 15) + 
-  theme(plot.title = element_text(hjust = 1)) +
-  theme(axis.text.y = element_text(size=8)) + 
-  # légende en bas de la figure en indiquant manuellement la légende pour la colonne reponse
+  theme(plot.title = element_text(hjust = 40)) +
+  theme(axis.text.y = element_text(size = 12)) +
+  # changer les valeurs dans la légende
+scale_fill_manual(values = c("n_uneseule" = "#E87D72", "n_ordre" = "#56BCC2"), labels = c("Plusieurs activités prioritaires", "Une seule activité prioritaire")) + 
+  theme(legend.text = element_text(size = 10))
 
+  ggsave(uneseuleplot,file = "uneseuleplot.png", width = 12, height = 8)
 
-  
-uneseuleplot
 
 
 
 ```
 
 
+---
+## conserver qu'une seule action
+
+```{r}
+
+names(consultation)
+actions <- consultation %>% 
+  rename(valeur = `Si vous ne deviez conserver qu'une seule action de l'association, quelle serait elle ?`) %>% 
+  group_by(valeur) %>% 
+  summarise(n = n()) %>% 
+  filter(valeur != "Autre") %>% 
+  mutate(valeur = fct_reorder(valeur, n))
+
+actionsplot <- actions %>%
+  ggplot(aes(x=valeur, y=n, fill=valeur)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Si vous ne deviez conserver qu'une seule action de l'association, quelle serait elle ?", caption = "Source : OpenDataFrance", size = 24) +
+  theme(legend.position="none") +
+  geom_text(aes(label = n), hjust =0, size = 4)+
+  theme(axis.text.y = element_text(size=13)) +
+  theme(plot.title = element_text(hjust =0))
+
+ggsave(actionsplot, filename="actionsplot.png", width=12, height=8)
+
+```
 
 ---
 ```{r, echo=FALSE}
